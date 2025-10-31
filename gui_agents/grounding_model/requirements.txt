@@ -1,0 +1,19 @@
+# UI-TARS Grounding Model Server Requirements
+
+# Core dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+python-dotenv>=1.0.0
+
+# Hugging Face and ML
+transformers>=4.35.0
+torch>=2.0.0
+torchvision>=0.15.0
+accelerate>=0.24.0
+pillow>=10.0.0
+
+# Optional: For better performance
+# bitsandbytes>=0.41.0  # For quantized models (8-bit, 4-bit)
+# optimum>=1.14.0  # For optimized inference
+

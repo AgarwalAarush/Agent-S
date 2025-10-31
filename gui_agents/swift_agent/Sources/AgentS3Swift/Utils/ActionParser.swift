@@ -32,20 +32,50 @@ class ActionParser {
     /// - Parameter code: Code string to search
     /// - Returns: Array of agent function call strings
     static func extractAgentFunctions(_ code: String) -> [String] {
-        // Match agent.xxx(...)
-        let pattern = #"agent\.\w+\(\s*.*?\)"#
-        
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else {
+        var functions: [String] = []
+
+        // Find all occurrences of "agent." followed by a function name
+        let pattern = #"agent\.(\w+)\("#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
             return []
         }
-        
+
         let range = NSRange(code.startIndex..., in: code)
         let matches = regex.matches(in: code, options: [], range: range)
-        
-        return matches.compactMap { match in
-            guard let matchRange = Range(match.range, in: code) else { return nil }
-            return String(code[matchRange])
+
+        for match in matches {
+            guard let matchRange = Range(match.range, in: code) else { continue }
+
+            // Start from the beginning of "agent.xxx("
+            let startIndex = matchRange.lowerBound
+
+            // Find the matching closing parenthesis by counting depth
+            var depth = 0
+            var foundStart = false
+            var endIndex = startIndex
+
+            for (index, char) in code[startIndex...].enumerated() {
+                let currentIndex = code.index(startIndex, offsetBy: index)
+
+                if char == "(" {
+                    depth += 1
+                    foundStart = true
+                } else if char == ")" {
+                    depth -= 1
+                    if depth == 0 && foundStart {
+                        endIndex = code.index(currentIndex, offsetBy: 1)
+                        break
+                    }
+                }
+            }
+
+            if depth == 0 && foundStart {
+                let functionCall = String(code[startIndex..<endIndex])
+                functions.append(functionCall)
+            }
         }
+
+        return functions
     }
     
     /// Parse a single agent function call string to Action enum
@@ -104,8 +134,14 @@ class ActionParser {
             return .highlightTextSpan(startPhrase: startPhrase, endPhrase: endPhrase, button: button)
             
         case "hotkey":
-            guard args.count >= 1 else { return nil }
+            print("DEBUG: Parsing hotkey action, args: \(args)")
+            guard args.count >= 1 else {
+                print("DEBUG: No args for hotkey")
+                return nil
+            }
+            print("DEBUG: First arg for hotkey: '\(args[0])'")
             let keys = parseStringArray(args[0]) ?? []
+            print("DEBUG: Parsed keys: \(keys)")
             return .hotkey(keys: keys)
             
         case "hold_and_press":
@@ -160,10 +196,11 @@ class ActionParser {
     private static func parseArguments(_ argsString: String) -> [String] {
         var args: [String] = []
         var current = ""
-        var depth = 0
+        var parenDepth = 0
+        var bracketDepth = 0
         var inString = false
         var stringChar: Character?
-        
+
         for char in argsString {
             if !inString && (char == "'" || char == "\"") {
                 inString = true
@@ -174,23 +211,29 @@ class ActionParser {
                 stringChar = nil
                 current.append(char)
             } else if !inString && char == "(" {
-                depth += 1
+                parenDepth += 1
                 current.append(char)
             } else if !inString && char == ")" {
-                depth -= 1
+                parenDepth -= 1
                 current.append(char)
-            } else if !inString && depth == 0 && char == "," {
+            } else if !inString && char == "[" {
+                bracketDepth += 1
+                current.append(char)
+            } else if !inString && char == "]" {
+                bracketDepth -= 1
+                current.append(char)
+            } else if !inString && parenDepth == 0 && bracketDepth == 0 && char == "," {
                 args.append(current.trimmingCharacters(in: .whitespaces))
                 current = ""
             } else {
                 current.append(char)
             }
         }
-        
+
         if !current.isEmpty {
             args.append(current.trimmingCharacters(in: .whitespaces))
         }
-        
+
         return args
     }
     

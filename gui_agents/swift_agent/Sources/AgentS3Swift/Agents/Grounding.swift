@@ -339,7 +339,10 @@ class OSWorldACI: ACI {
             return "HIGHLIGHT(\(startCoords[0]), \(startCoords[1]), \(endCoords[0]), \(endCoords[1]), button=\(button))"
             
         case .hotkey(let keys):
-            return "HOTKEY(\(keys.map { $0.quoted }.joined(separator: ", ")))"
+            print("DEBUG: Creating hotkey action code with keys: \(keys)")
+            let code = "HOTKEY(\(keys.map { $0.quoted }.joined(separator: ", ")))"
+            print("DEBUG: Generated hotkey code: \(code)")
+            return code
             
         case .holdAndPress(let holdKeys, let pressKeys):
             var command = ""
