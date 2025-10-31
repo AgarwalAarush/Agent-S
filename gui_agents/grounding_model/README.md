@@ -38,7 +38,7 @@ cp .env.example .env
 ```
 
 Edit `.env` to set:
-- `GROUNDING_MODEL`: Model name (default: `ui-tars-1.5-7b`)
+- `GROUNDING_MODEL`: Model name (default: `ByteDance-Seed/UI-TARS-1.5-7B`)
 - `DEVICE`: `cuda` or `cpu` (default: `cuda` if available, else `cpu`)
 - `PORT`: Server port (default: `8080`)
 - `GROUNDING_URL`: Backend URL for Agent S (default: `http://localhost:8080`)
@@ -80,7 +80,7 @@ Returns:
 ```json
 {
   "status": "healthy",
-  "model": "ui-tars-1.5-7b",
+  "model": "ByteDance-Seed/UI-TARS-1.5-7B",
   "device": "cuda",
   "model_loaded": true
 }
@@ -93,7 +93,7 @@ Returns:
 **Request Format** (OpenAI-compatible):
 ```json
 {
-  "model": "ui-tars-1.5-7b",
+  "model": "ByteDance-Seed/UI-TARS-1.5-7B",
   "messages": [
     {
       "role": "user",
@@ -121,7 +121,7 @@ Returns:
   "id": "chatcmpl-...",
   "object": "chat.completion",
   "created": 1234567890,
-  "model": "ui-tars-1.5-7b",
+  "model": "ByteDance-Seed/UI-TARS-1.5-7B",
   "choices": [
     {
       "index": 0,
@@ -165,7 +165,7 @@ Update the `engineParamsForGrounding` in your Swift code to use the local server
 ```swift
 engineParamsForGrounding = [
     "engine_type": "openai",
-    "model": "ui-tars-1.5-7b",
+    "model": "ByteDance-Seed/UI-TARS-1.5-7B",
     "api_key": "dummy",  // Not used for local server
     "base_url": "http://localhost:8080/v1",
     "grounding_width": 1920,
@@ -183,7 +183,7 @@ agent_s \
     --model gpt-5-2025-08-07 \
     --ground_provider huggingface \
     --ground_url http://localhost:8080 \
-    --ground_model ui-tars-1.5-7b \
+    --ground_model ByteDance-Seed/UI-TARS-1.5-7B \
     --grounding_width 1920 \
     --grounding_height 1080
 ```
@@ -192,7 +192,7 @@ agent_s \
 
 The server reads from `.env` file:
 
-- `GROUNDING_MODEL`: Hugging Face model identifier (default: `ui-tars-1.5-7b`)
+- `GROUNDING_MODEL`: Hugging Face model identifier (default: `ByteDance-Seed/UI-TARS-1.5-7B`)
 - `DEVICE`: Device to run on - `cuda` or `cpu` (auto-detects if not set)
 - `HOST`: Server host (default: `0.0.0.0`)
 - `PORT`: Server port (default: `8080`)
