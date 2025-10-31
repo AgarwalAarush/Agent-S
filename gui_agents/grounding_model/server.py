@@ -11,10 +11,17 @@ from typing import List, Dict, Any, Optional
 from PIL import Image
 import torch
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
+import re
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Import transformers components
 try:
@@ -42,6 +49,12 @@ HOST = os.getenv("HOST", "0.0.0.0")
 
 app = FastAPI(title="UI-TARS Grounding Model Server")
 
+# Authentication Note:
+# This server does NOT validate Authorization headers for local deployment.
+# Clients (like Swift agent) may send "Authorization: Bearer {apiKey}" headers,
+# but these are ignored by the server. For production deployment, implement
+# proper authentication middleware using FastAPI's security utilities.
+
 # Enable CORS for local development
 app.add_middleware(
     CORSMiddleware,
@@ -50,6 +63,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# OpenAI-compatible error handler
+@app.exception_handler(HTTPException)
+async def openai_exception_handler(_request: Request, exc: HTTPException):
+    """
+    Convert FastAPI HTTPException to OpenAI-compatible error format.
+    OpenAI format: {"error": {"message": "...", "type": "...", "code": ...}}
+    """
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "message": exc.detail,
+                "type": "invalid_request_error" if exc.status_code == 400 else "server_error",
+                "code": exc.status_code
+            }
+        }
+    )
 
 # Global model variables
 processor = None
@@ -185,28 +217,36 @@ def extract_text_and_image(messages: List[ChatMessage]) -> tuple[str, Optional[I
     return prompt, image
 
 
-async def generate_coordinates(prompt: str, image: Optional[Image.Image]) -> str:
+async def generate_coordinates(
+    prompt: str,
+    image: Optional[Image.Image],
+    temperature: float = 0.0,
+    max_completion_tokens: int = 128
+) -> str:
     """
     Generate coordinates using UI-TARS model
-    
+
     Args:
-        prompt: Text query describing what to find
+        prompt: Text query describing what to find (client should include full instructions)
         image: Screenshot image
-        
+        temperature: Sampling temperature (default: 0.0 for deterministic output)
+        max_completion_tokens: Maximum tokens to generate (default: 128, sufficient for coordinates)
+
     Returns:
         Response string containing coordinates
     """
     global processor, tokenizer, model, model_type
-    
+
     if model is None:
         raise RuntimeError("Model not loaded")
-    
+
     if image is None:
         raise ValueError("Image is required for grounding")
-    
+
     try:
-        # Prepare full prompt
-        full_prompt = f"{prompt}\nOutput only the coordinate of one point in your response."
+        # Use prompt as-is (client formats it with necessary instructions)
+        # Swift client already includes "Output only the coordinate of one point in your response."
+        full_prompt = prompt
         
         # Handle different model types
         if model_type == "vision2seq" or model_type == "blip":
@@ -217,20 +257,21 @@ async def generate_coordinates(prompt: str, image: Optional[Image.Image]) -> str
                 return_tensors="pt",
                 padding=True
             )
-            
+
             # Move inputs to device
-            inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v 
+            inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v
                      for k, v in inputs.items()}
-            
-            # Generate response
+
+            # Generate response with client-specified parameters
             with torch.no_grad():
                 outputs = model.generate(
                     **inputs,
-                    max_new_tokens=512,
-                    temperature=0.0,
-                    do_sample=False
+                    max_new_tokens=max_completion_tokens,
+                    temperature=temperature,
+                    do_sample=temperature > 0.0,  # Only sample if temperature > 0
+                    num_beams=1  # Greedy decoding for deterministic output
                 )
-            
+
             # Decode response
             if model_type == "blip":
                 response = processor.decode(outputs[0], skip_special_tokens=True)
@@ -244,20 +285,21 @@ async def generate_coordinates(prompt: str, image: Optional[Image.Image]) -> str
                 # Try processor with image
                 image_inputs = processor(image, return_tensors="pt")
                 text_inputs = tokenizer(full_prompt, return_tensors="pt")
-                
+
                 # Combine inputs (model-specific)
                 inputs = {**image_inputs, **text_inputs}
-                inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v 
+                inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v
                          for k, v in inputs.items()}
-                
+
                 with torch.no_grad():
                     outputs = model.generate(
                         **inputs,
-                        max_new_tokens=512,
-                        temperature=0.0,
-                        do_sample=False
+                        max_new_tokens=max_completion_tokens,
+                        temperature=temperature,
+                        do_sample=temperature > 0.0,
+                        num_beams=1
                     )
-                
+
                 response = tokenizer.decode(outputs[0], skip_special_tokens=True)
             except Exception as e:
                 raise RuntimeError(f"AutoModel processing failed: {e}")
@@ -265,23 +307,35 @@ async def generate_coordinates(prompt: str, image: Optional[Image.Image]) -> str
         elif model_type == "causal":
             # Text-only model - this won't work well with images
             # But we'll try to process text only
-            print("Warning: CausalLM model - image input ignored")
+            logger.warning("CausalLM model - image input ignored")
             inputs = tokenizer(full_prompt, return_tensors="pt")
             inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
-            
+
             with torch.no_grad():
                 outputs = model.generate(
                     **inputs,
-                    max_new_tokens=512,
-                    temperature=0.0,
-                    do_sample=False
+                    max_new_tokens=max_completion_tokens,
+                    temperature=temperature,
+                    do_sample=temperature > 0.0,
+                    num_beams=1
                 )
-            
+
             response = tokenizer.decode(outputs[0], skip_special_tokens=True)
         else:
             raise RuntimeError(f"Unknown model type: {model_type}")
-        
-        return response.strip()
+
+        # Log and validate the response
+        response = response.strip()
+        logger.info(f"Grounding model raw response: {response}")
+
+        # Validate that response contains at least 2 numbers (for coordinate pair)
+        numbers = re.findall(r'\d+', response)
+        if len(numbers) < 2:
+            logger.warning(f"Response validation: Expected at least 2 numbers for coordinates, found {len(numbers)}: {numbers}")
+        else:
+            logger.info(f"Response validation: Found {len(numbers)} numbers: {numbers[:2]} (using first 2 as coordinates)")
+
+        return response
         
     except Exception as e:
         raise RuntimeError(f"Generation failed: {e}")
@@ -310,21 +364,29 @@ async def chat_completions(request: ChatCompletionRequest):
     """
     OpenAI-compatible chat completions endpoint
     Accepts image + text and returns coordinates
+
+    Note: Authorization header is ignored for local deployment.
+    For production, implement proper authentication middleware.
     """
     import time
-    
+
     try:
         # Extract text and image from messages
         prompt, image = extract_text_and_image(request.messages)
-        
+
         if not prompt:
             raise HTTPException(status_code=400, detail="No text prompt provided")
-        
+
         if image is None:
             raise HTTPException(status_code=400, detail="No image provided")
-        
-        # Generate coordinates
-        response_text = await generate_coordinates(prompt, image)
+
+        # Generate coordinates with client-specified parameters
+        response_text = await generate_coordinates(
+            prompt,
+            image,
+            temperature=request.temperature,
+            max_completion_tokens=request.max_completion_tokens
+        )
         
         # Format response in OpenAI-compatible format
         response = {
