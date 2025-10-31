@@ -1,0 +1,485 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.AgentS3Swift-arm64-apple-macosx26.0-debug.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/sources",
+      "importPath" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/AgentS.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/CodeAgent.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/Grounding.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/Worker.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/CLI/CLIRunner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/BaseModule.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/AnthropicEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/LLMEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/OpenAIEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/LLMAgent.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Memory/ProceduralMemory.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Action.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/AgentResponse.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Message.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Observation.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/ActionParser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CGEventExecutor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CodeExecutor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CommonUtils.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CreateActionCode.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/Formatters.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/ImageUtils.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/main.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "AgentS3Swift",
+      "moduleOutputPath" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/Modules/AgentS3Swift.swiftmodule",
+      "objects" : [
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/AgentS.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/CodeAgent.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/Grounding.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/Worker.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/CLIRunner.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/BaseModule.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/AnthropicEngine.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/LLMEngine.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/OpenAIEngine.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/LLMAgent.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/ProceduralMemory.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/Action.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/AgentResponse.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/Message.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/Observation.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/ActionParser.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/CGEventExecutor.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/CodeExecutor.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/CommonUtils.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/CreateActionCode.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/Formatters.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/ImageUtils.swift.o",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/main.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx13.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-Onone",
+        "-enable-testing",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "AgentS3Swift_main",
+        "-swift-version",
+        "5",
+        "-Xfrontend",
+        "-experimental-lazy-typecheck",
+        "-Xfrontend",
+        "-experimental-skip-all-function-bodies",
+        "-Xfrontend",
+        "-experimental-allow-module-with-compiler-errors",
+        "-Xfrontend",
+        "-empty-abi-descriptor",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "swift_agent"
+      ],
+      "outputFileMapPath" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/Modules/AgentS3Swift.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : true,
+      "sources" : [
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/AgentS.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/CodeAgent.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/Grounding.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/Worker.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/CLI/CLIRunner.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/BaseModule.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/AnthropicEngine.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/LLMEngine.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/OpenAIEngine.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/LLMAgent.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Memory/ProceduralMemory.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Action.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/AgentResponse.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Message.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Observation.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/ActionParser.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CGEventExecutor.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CodeExecutor.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CommonUtils.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CreateActionCode.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/Formatters.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/ImageUtils.swift",
+        "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/main.swift"
+      ],
+      "tempsPath" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "AgentS3Swift" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "AgentS3Swift",
+      "-package-name",
+      "swift_agent",
+      "-c",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/AgentS.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/CodeAgent.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/Grounding.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/Worker.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/CLI/CLIRunner.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/BaseModule.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/AnthropicEngine.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/LLMEngine.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/OpenAIEngine.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/LLMAgent.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Memory/ProceduralMemory.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Action.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/AgentResponse.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Message.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Observation.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/ActionParser.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CGEventExecutor.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CodeExecutor.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CommonUtils.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CreateActionCode.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/Formatters.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/ImageUtils.swift",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/main.swift",
+      "-I",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx13.0",
+      "-incremental",
+      "-enable-batch-mode",
+      "-serialize-diagnostics",
+      "-Onone",
+      "-enable-testing",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "AgentS3Swift_main",
+      "-swift-version",
+      "5",
+      "-Xfrontend",
+      "-experimental-lazy-typecheck",
+      "-Xfrontend",
+      "-experimental-skip-all-function-bodies",
+      "-Xfrontend",
+      "-experimental-allow-module-with-compiler-errors",
+      "-Xfrontend",
+      "-empty-abi-descriptor",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/PrivateFrameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "swift_agent",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "AgentS3Swift" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/AgentS.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/CodeAgent.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/Grounding.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Agents/Worker.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/CLI/CLIRunner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/BaseModule.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/AnthropicEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/LLMEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/Engine/OpenAIEngine.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Core/LLMAgent.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Memory/ProceduralMemory.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Action.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/AgentResponse.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Message.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Types/Observation.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/ActionParser.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CGEventExecutor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CodeExecutor.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CommonUtils.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/CreateActionCode.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/Formatters.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/Utils/ImageUtils.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/Sources/AgentS3Swift/main.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/AgentS3Swift.build/sources"
+    },
+    "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/aarushagarwal/Documents/Programming/Agent-S/gui_agents/swift_agent/.build/index-build/arm64-apple-macosx/debug/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}

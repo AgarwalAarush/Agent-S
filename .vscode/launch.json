@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:Agent-S}/gui_agents/swift_agent",
+            "name": "Debug agent-s3 (gui_agents/swift_agent)",
+            "program": "${workspaceFolder:Agent-S}/gui_agents/swift_agent/.build/debug/agent-s3",
+            "preLaunchTask": "swift: Build Debug agent-s3 (gui_agents/swift_agent)"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:Agent-S}/gui_agents/swift_agent",
+            "name": "Release agent-s3 (gui_agents/swift_agent)",
+            "program": "${workspaceFolder:Agent-S}/gui_agents/swift_agent/.build/release/agent-s3",
+            "preLaunchTask": "swift: Build Release agent-s3 (gui_agents/swift_agent)"
+        }
+    ]
+}
