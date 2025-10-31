@@ -7,7 +7,9 @@ Compatible with OpenAI API format for easy integration
 import os
 import base64
 import io
-from typing import List, Dict, Any, Optional
+import time
+from contextlib import asynccontextmanager
+from typing import List, Dict, Any, Optional, Tuple
 from PIL import Image
 import torch
 
@@ -38,7 +40,7 @@ try:
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
-    print("Warning: transformers not available. Please install: pip install transformers")
+    logger.warning("transformers not available. Please install: pip install transformers")
 
 
 # Configuration from environment
@@ -47,7 +49,17 @@ DEVICE = os.getenv("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
 PORT = int(os.getenv("PORT", "8080"))
 HOST = os.getenv("HOST", "0.0.0.0")
 
-app = FastAPI(title="UI-TARS Grounding Model Server")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    """Lifespan context manager for startup and shutdown events"""
+    # Startup
+    load_model()
+    yield
+    # Shutdown (cleanup if needed)
+
+
+app = FastAPI(title="UI-TARS Grounding Model Server", lifespan=lifespan)
 
 # Authentication Note:
 # This server does NOT validate Authorization headers for local deployment.
@@ -87,7 +99,7 @@ async def openai_exception_handler(_request: Request, exc: HTTPException):
 processor = None
 tokenizer = None
 model = None
-model_type = None  # 'vision2seq', 'blip', 'custom', etc.
+model_type = None  # 'vision2seq', 'blip', 'auto', 'causal'
 
 
 class ChatMessage(BaseModel):
@@ -99,7 +111,7 @@ class ChatCompletionRequest(BaseModel):
     model: str
     messages: List[ChatMessage]
     temperature: Optional[float] = 0.0
-    max_completion_tokens: Optional[int] = 512
+    max_completion_tokens: Optional[int] = 128
 
 
 class ChatCompletionResponse(BaseModel):
@@ -117,8 +129,8 @@ def load_model():
     
     if not TRANSFORMERS_AVAILABLE:
         raise RuntimeError("transformers library not available")
-    
-    print(f"Loading model {MODEL_NAME} on device {DEVICE}...")
+
+    logger.info(f"Loading model {MODEL_NAME} on device {DEVICE}...")
     
     try:
         # Try different model architectures
@@ -131,7 +143,7 @@ def load_model():
                 device_map="auto" if DEVICE == "cuda" else None
             )
             model_type = "vision2seq"
-            print(f"✓ Loaded as Vision2Seq model")
+            logger.info("Loaded as Vision2Seq model")
         except Exception as e1:
             # Try BLIP architecture
             try:
@@ -142,7 +154,7 @@ def load_model():
                     device_map="auto" if DEVICE == "cuda" else None
                 )
                 model_type = "blip"
-                print(f"✓ Loaded as BLIP model")
+                logger.info("Loaded as BLIP model")
             except Exception as e2:
                 # Try standard AutoModel (for custom architectures)
                 try:
@@ -155,11 +167,11 @@ def load_model():
                     )
                     processor = image_processor
                     model_type = "auto"
-                    print(f"✓ Loaded as AutoModel")
+                    logger.info("Loaded as AutoModel")
                 except Exception as e3:
                     # Fallback to causal LM (text-only, but we'll try)
-                    print(f"Warning: Vision2Seq failed ({e1}), BLIP failed ({e2}), AutoModel failed ({e3})")
-                    print("Trying CausalLM as last resort (may not support images)...")
+                    logger.warning(f"Vision2Seq failed ({e1}), BLIP failed ({e2}), AutoModel failed ({e3})")
+                    logger.warning("Trying CausalLM as last resort (may not support images)")
                     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
                     model = AutoModelForCausalLM.from_pretrained(
                         MODEL_NAME,
@@ -168,13 +180,13 @@ def load_model():
                     )
                     processor = tokenizer
                     model_type = "causal"
-                    print(f"⚠ Loaded as CausalLM (image support may be limited)")
+                    logger.warning("Loaded as CausalLM (image support may be limited)")
         
         if DEVICE == "cpu" and model_type != "auto":
             model = model.to(DEVICE)
-        
+
         model.eval()
-        print(f"✓ Model {MODEL_NAME} loaded successfully on {DEVICE}")
+        logger.info(f"Model {MODEL_NAME} loaded successfully on {DEVICE}")
         
     except Exception as e:
         raise RuntimeError(f"Failed to load model: {e}")
@@ -191,7 +203,7 @@ def decode_image_from_base64(image_data: str) -> Image.Image:
     return image.convert("RGB")
 
 
-def extract_text_and_image(messages: List[ChatMessage]) -> tuple[str, Optional[Image.Image]]:
+def extract_text_and_image(messages: List[ChatMessage]) -> Tuple[str, Optional[Image.Image]]:
     """Extract text prompt and image from OpenAI-format messages"""
     text_parts = []
     image = None
@@ -211,7 +223,7 @@ def extract_text_and_image(messages: List[ChatMessage]) -> tuple[str, Optional[I
                                 try:
                                     image = decode_image_from_base64(url)
                                 except Exception as e:
-                                    print(f"Warning: Failed to decode image: {e}")
+                                    logger.warning(f"Failed to decode image: {e}")
     
     prompt = "\n".join(text_parts).strip()
     return prompt, image
@@ -273,10 +285,7 @@ async def generate_coordinates(
                 )
 
             # Decode response
-            if model_type == "blip":
-                response = processor.decode(outputs[0], skip_special_tokens=True)
-            else:
-                response = processor.decode(outputs[0], skip_special_tokens=True)
+            response = processor.decode(outputs[0], skip_special_tokens=True)
                 
         elif model_type == "auto":
             # Try to use processor for vision + tokenizer for text
@@ -341,12 +350,6 @@ async def generate_coordinates(
         raise RuntimeError(f"Generation failed: {e}")
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Load model on startup"""
-    load_model()
-
-
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -368,8 +371,6 @@ async def chat_completions(request: ChatCompletionRequest):
     Note: Authorization header is ignored for local deployment.
     For production, implement proper authentication middleware.
     """
-    import time
-
     try:
         # Extract text and image from messages
         prompt, image = extract_text_and_image(request.messages)
@@ -412,12 +413,15 @@ async def chat_completions(request: ChatCompletionRequest):
         }
         
         return response
-        
+
     except ValueError as e:
+        logger.error(f"Validation error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
+        logger.error(f"Runtime error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
+        logger.exception(f"Unexpected error in chat_completions: {e}")
         raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
@@ -432,9 +436,8 @@ async def grounding_generate(
     try:
         image_obj = decode_image_from_base64(image)
         response_text = await generate_coordinates(prompt, image_obj)
-        
-        # Try to extract coordinates
-        import re
+
+        # Extract coordinates from response
         numbers = re.findall(r'\d+', response_text)
         if len(numbers) >= 2:
             coordinates = [int(numbers[0]), int(numbers[1])]
@@ -446,12 +449,13 @@ async def grounding_generate(
             "coordinates": coordinates
         }
     except Exception as e:
+        logger.exception(f"Error in grounding_generate: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
-    print(f"Starting UI-TARS grounding model server on {HOST}:{PORT}")
-    print(f"Model: {MODEL_NAME}")
-    print(f"Device: {DEVICE}")
+    logger.info(f"Starting UI-TARS grounding model server on {HOST}:{PORT}")
+    logger.info(f"Model: {MODEL_NAME}")
+    logger.info(f"Device: {DEVICE}")
     uvicorn.run(app, host=HOST, port=PORT)
 
