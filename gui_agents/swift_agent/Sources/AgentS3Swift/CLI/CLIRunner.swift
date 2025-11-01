@@ -56,14 +56,6 @@ class CLIRunner {
                 "model": "gpt-5-nano-2025-08-07",
                 "api_key": openAIKey
             ]
-
-            engineParamsForGrounding = [
-                "engine_type": "openai",
-                "model": "gpt-5-nano-2025-08-07",
-                "api_key": openAIKey,
-                "grounding_width": 1000,
-                "grounding_height": 1000
-            ]
         } else {
             engineParamsForGeneration = [
                 "engine_type": "anthropic",
@@ -72,19 +64,23 @@ class CLIRunner {
                 "temperature": 0.2,
                 "top_p": 0.1
             ]
-
-            engineParamsForGrounding = [
-                "engine_type": "anthropic",
-                "model": "claude-sonnet-4-5-20250929",
-                "api_key": anthropicKey,
-                "temperature": 0.2,
-                "top_p": 0.1,
-                "grounding_width": 1000,
-                "grounding_height": 1000
-            ]
         }
+
+        // Grounding model always uses local UI-TARS server at localhost:8080
+        // Server uses OpenAI-compatible API format
+        engineParamsForGrounding = [
+            "engine_type": "openai",
+            "model": "UI-TARS-1.5-7B",  // Model name (informational only)
+            "base_url": "http://localhost:8080/v1",  // Local grounding model server
+            "api_key": "dummy-key",  // Server doesn't validate auth for local deployment
+            "grounding_width": 1000,
+            "grounding_height": 1000,
+            "temperature": 0.0,
+            "max_completion_tokens": 128
+        ]
         
-        print("✓ Using \(useOpenAI ? "OpenAI" : "Anthropic") API")
+        print("✓ Using \(useOpenAI ? "OpenAI" : "Anthropic") API for generation")
+        print("✓ Using local grounding model server at localhost:8080")
         
         // Scale screen dimensions
         let (scaledW, scaledH) = scaleScreenDimensions(width: width, height: height, maxDimSize: 1000)
