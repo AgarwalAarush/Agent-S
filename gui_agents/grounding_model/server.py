@@ -1,73 +1,168 @@
 """
-FastAPI server for UI-TARS grounding model
-Serves the ByteDance-Seed/UI-TARS-1.5-7B model locally on port 8080
-Compatible with OpenAI API format for easy integration
+FastAPI proxy for the grounding model that forwards OpenAI-format requests
+to a local backend and normalises the responses.
 """
 
 import os
-import base64
-import io
+import re
 import time
-from contextlib import asynccontextmanager
-from typing import List, Dict, Any, Optional, Tuple
-from PIL import Image
-import torch
+import logging
+from typing import Any, Dict, List, Optional, Union
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from openai import OpenAI, OpenAIError
 from pydantic import BaseModel
-import uvicorn
-import re
-import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Import transformers components
-try:
-    from transformers import (
-        AutoProcessor, 
-        AutoModelForVision2Seq,
-        AutoModelForCausalLM,
-        AutoTokenizer,
-        AutoImageProcessor,
-        AutoModel,
-        BlipProcessor,
-        BlipForConditionalGeneration
-    )
-    TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    TRANSFORMERS_AVAILABLE = False
-    logger.warning("transformers not available. Please install: pip install transformers")
+# Configuration
+DEFAULT_MODEL = os.getenv("GROUNDING_MODEL", "tgi")
+BASE_URL = os.getenv("GROUNDING_BASE_URL", "http://localhost:8080/v1")
+API_KEY = os.getenv("GROUNDING_API_KEY", os.getenv("OPENAI_API_KEY", "dummy"))
+DEFAULT_MAX_TOKENS = int(os.getenv("GROUNDING_MAX_TOKENS", "400"))
 
 
-# Configuration from environment
-MODEL_NAME = os.getenv("GROUNDING_MODEL", "ByteDance-Seed/UI-TARS-1.5-7B")
-DEVICE = os.getenv("DEVICE", "cuda" if torch.cuda.is_available() else "cpu")
-PORT = int(os.getenv("PORT", "8080"))
-HOST = os.getenv("HOST", "0.0.0.0")
+def add_box_token(input_string: str) -> str:
+    """
+    Insert <|box_start|> / <|box_end|> tokens around coordinate arguments so
+    the backend model receives boxed coordinates.
+    """
+    if "Action: " in input_string and "start_box=" in input_string:
+        prefix = input_string.split("Action: ")[0] + "Action: "
+        actions = input_string.split("Action: ")[1:]
+        processed: List[str] = []
+        for action in actions:
+            action = action.strip()
+            matches = re.findall(r"(start_box|end_box)='\((\d+),\s*(\d+)\)'", action)
+            updated = action
+            for coord_type, x_val, y_val in matches:
+                needle = f"{coord_type}='({x_val},{y_val})'"
+                replacement = (
+                    f"{coord_type}='<|box_start|>({x_val},{y_val})<|box_end|>'"
+                )
+                updated = updated.replace(needle, replacement)
+            processed.append(updated)
+        return prefix + "\n\n".join(processed)
+    return input_string
 
 
-@asynccontextmanager
-async def lifespan(_app: FastAPI):
-    """Lifespan context manager for startup and shutdown events"""
-    # Startup
-    load_model()
-    yield
-    # Shutdown (cleanup if needed)
+MessageContent = Union[str, List[Dict[str, Any]]]
 
 
-app = FastAPI(title="UI-TARS Grounding Model Server", lifespan=lifespan)
+class ChatMessage(BaseModel):
+    role: str
+    content: MessageContent
 
-# Authentication Note:
-# This server does NOT validate Authorization headers for local deployment.
-# Clients (like Swift agent) may send "Authorization: Bearer {apiKey}" headers,
-# but these are ignored by the server. For production deployment, implement
-# proper authentication middleware using FastAPI's security utilities.
 
-# Enable CORS for local development
+class ChatCompletionRequest(BaseModel):
+    model: Optional[str] = None
+    messages: List[ChatMessage]
+    temperature: Optional[float] = 0.0
+    max_completion_tokens: Optional[int] = None
+    max_tokens: Optional[int] = None
+
+
+client: Optional[OpenAI] = None
+
+
+def get_client() -> OpenAI:
+    global client
+    if client is None:
+        client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
+        logger.info("Initialised OpenAI client with base_url=%s", BASE_URL)
+    return client
+
+
+def ensure_data_url(image: str) -> str:
+    return image if image.startswith("data:") else f"data:image/png;base64,{image}"
+
+
+def prepare_messages(messages: List[ChatMessage]) -> List[Dict[str, Any]]:
+    prepared: List[Dict[str, Any]] = []
+    for message in messages:
+        item: Dict[str, Any] = {"role": message.role}
+        content = message.content
+        if isinstance(content, list):
+            parts: List[Any] = []
+            for part in content:
+                if not isinstance(part, dict):
+                    parts.append(part)
+                    continue
+                updated = dict(part)
+                text_value = updated.get("text")
+                if (
+                    isinstance(text_value, str)
+                    and message.role == "assistant"
+                ):
+                    updated["text"] = add_box_token(text_value)
+                parts.append(updated)
+            item["content"] = parts
+        elif isinstance(content, str) and message.role == "assistant":
+            item["content"] = add_box_token(content)
+        else:
+            item["content"] = content
+        prepared.append(item)
+    return prepared
+
+
+def extract_response_text(completion: Any) -> str:
+    if not getattr(completion, "choices", []):
+        return ""
+    choice = completion.choices[0]
+    message = getattr(choice, "message", choice.get("message") if isinstance(choice, dict) else None)
+    if message is None:
+        return ""
+    content = getattr(message, "content", message.get("content") if isinstance(message, dict) else None)
+    if isinstance(content, list):
+        texts: List[str] = []
+        for part in content:
+            if isinstance(part, dict):
+                if "text" in part and isinstance(part["text"], str):
+                    texts.append(part["text"])
+                elif "value" in part and isinstance(part["value"], str):
+                    texts.append(part["value"])
+        return "\n".join(texts).strip()
+    if isinstance(content, str):
+        return content.strip()
+    return ""
+
+
+async def request_chat_completion(
+    messages: List[Dict[str, Any]],
+    model: Optional[str],
+    temperature: Optional[float],
+    max_tokens: Optional[int],
+) -> Any:
+    payload: Dict[str, Any] = {
+        "model": model or DEFAULT_MODEL,
+        "messages": messages,
+    }
+    if temperature is not None:
+        payload["temperature"] = temperature
+    effective_max_tokens = max_tokens or DEFAULT_MAX_TOKENS
+    if effective_max_tokens is not None:
+        payload["max_tokens"] = effective_max_tokens
+
+    try:
+        completion = await run_in_threadpool(
+            get_client().chat.completions.create,
+            **payload,
+        )
+        return completion
+    except OpenAIError as exc:
+        logger.error("OpenAI backend error: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Unexpected backend error")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+app = FastAPI(title="Grounding Model Proxy")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -77,410 +172,76 @@ app.add_middleware(
 )
 
 
-# OpenAI-compatible error handler
 @app.exception_handler(HTTPException)
 async def openai_exception_handler(_request: Request, exc: HTTPException):
-    """
-    Convert FastAPI HTTPException to OpenAI-compatible error format.
-    OpenAI format: {"error": {"message": "...", "type": "...", "code": ...}}
-    """
     return JSONResponse(
         status_code=exc.status_code,
         content={
             "error": {
                 "message": exc.detail,
-                "type": "invalid_request_error" if exc.status_code == 400 else "server_error",
-                "code": exc.status_code
+                "type": "invalid_request_error"
+                if exc.status_code == 400
+                else "server_error",
+                "code": exc.status_code,
             }
-        }
+        },
     )
-
-# Global model variables
-processor = None
-tokenizer = None
-model = None
-model_type = None  # 'vision2seq', 'blip', 'auto', 'causal'
-
-
-class ChatMessage(BaseModel):
-    role: str
-    content: List[Dict[str, Any]]
-
-
-class ChatCompletionRequest(BaseModel):
-    model: str
-    messages: List[ChatMessage]
-    temperature: Optional[float] = 0.0
-    max_completion_tokens: Optional[int] = 128
-
-
-class ChatCompletionResponse(BaseModel):
-    id: str
-    object: str = "chat.completion"
-    created: int
-    model: str
-    choices: List[Dict[str, Any]]
-    usage: Dict[str, Any]
-
-
-def load_model():
-    """Load the UI-TARS model and processor"""
-    global processor, tokenizer, model, model_type
-    
-    if not TRANSFORMERS_AVAILABLE:
-        raise RuntimeError("transformers library not available")
-
-    logger.info(f"Loading model {MODEL_NAME} on device {DEVICE}...")
-    
-    try:
-        # Try different model architectures
-        # First, try Vision2Seq (common for vision-language models)
-        try:
-            processor = AutoProcessor.from_pretrained(MODEL_NAME)
-            model = AutoModelForVision2Seq.from_pretrained(
-                MODEL_NAME,
-                torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32,
-                device_map="auto" if DEVICE == "cuda" else None
-            )
-            model_type = "vision2seq"
-            logger.info("Loaded as Vision2Seq model")
-        except Exception as e1:
-            # Try BLIP architecture
-            try:
-                processor = BlipProcessor.from_pretrained(MODEL_NAME)
-                model = BlipForConditionalGeneration.from_pretrained(
-                    MODEL_NAME,
-                    torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32,
-                    device_map="auto" if DEVICE == "cuda" else None
-                )
-                model_type = "blip"
-                logger.info("Loaded as BLIP model")
-            except Exception as e2:
-                # Try standard AutoModel (for custom architectures)
-                try:
-                    image_processor = AutoImageProcessor.from_pretrained(MODEL_NAME)
-                    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-                    model = AutoModel.from_pretrained(
-                        MODEL_NAME,
-                        torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32,
-                        device_map="auto" if DEVICE == "cuda" else None
-                    )
-                    processor = image_processor
-                    model_type = "auto"
-                    logger.info("Loaded as AutoModel")
-                except Exception as e3:
-                    # Fallback to causal LM (text-only, but we'll try)
-                    logger.warning(f"Vision2Seq failed ({e1}), BLIP failed ({e2}), AutoModel failed ({e3})")
-                    logger.warning("Trying CausalLM as last resort (may not support images)")
-                    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-                    model = AutoModelForCausalLM.from_pretrained(
-                        MODEL_NAME,
-                        torch_dtype=torch.float16 if DEVICE == "cuda" else torch.float32,
-                        device_map="auto" if DEVICE == "cuda" else None
-                    )
-                    processor = tokenizer
-                    model_type = "causal"
-                    logger.warning("Loaded as CausalLM (image support may be limited)")
-        
-        if DEVICE == "cpu" and model_type != "auto":
-            model = model.to(DEVICE)
-
-        model.eval()
-        logger.info(f"Model {MODEL_NAME} loaded successfully on {DEVICE}")
-        
-    except Exception as e:
-        raise RuntimeError(f"Failed to load model: {e}")
-
-
-def decode_image_from_base64(image_data: str) -> Image.Image:
-    """Decode base64 image data"""
-    # Handle data:image/png;base64, prefix
-    if "," in image_data:
-        image_data = image_data.split(",")[1]
-    
-    image_bytes = base64.b64decode(image_data)
-    image = Image.open(io.BytesIO(image_bytes))
-    return image.convert("RGB")
-
-
-def extract_text_and_image(messages: List[ChatMessage]) -> Tuple[str, Optional[Image.Image]]:
-    """Extract text prompt and image from OpenAI-format messages"""
-    text_parts = []
-    image = None
-    
-    # Process messages in order, looking for image in last user message
-    for message in messages:
-        if message.role == "user":
-            for content_item in message.content:
-                if isinstance(content_item, dict):
-                    if content_item.get("type") == "text":
-                        text_parts.append(content_item.get("text", ""))
-                    elif content_item.get("type") == "image_url":
-                        image_url = content_item.get("image_url", {})
-                        if isinstance(image_url, dict):
-                            url = image_url.get("url", "")
-                            if url.startswith("data:"):
-                                try:
-                                    image = decode_image_from_base64(url)
-                                except Exception as e:
-                                    logger.warning(f"Failed to decode image: {e}")
-    
-    prompt = "\n".join(text_parts).strip()
-    return prompt, image
-
-
-async def generate_coordinates(
-    prompt: str,
-    image: Optional[Image.Image],
-    temperature: float = 0.0,
-    max_completion_tokens: int = 128
-) -> str:
-    """
-    Generate coordinates using UI-TARS model
-
-    Args:
-        prompt: Text query describing what to find (client should include full instructions)
-        image: Screenshot image
-        temperature: Sampling temperature (default: 0.0 for deterministic output)
-        max_completion_tokens: Maximum tokens to generate (default: 128, sufficient for coordinates)
-
-    Returns:
-        Response string containing coordinates
-    """
-    global processor, tokenizer, model, model_type
-
-    if model is None:
-        raise RuntimeError("Model not loaded")
-
-    if image is None:
-        raise ValueError("Image is required for grounding")
-
-    try:
-        # Handle different model types
-        if model_type == "vision2seq" or model_type == "blip":
-            # Vision-language models with processor
-            # Use chat template for proper multi-modal formatting (required for Qwen2.5-VL)
-            messages = [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "image"},
-                        {"type": "text", "text": prompt}
-                    ]
-                }
-            ]
-
-            # Apply chat template to insert vision tokens properly
-            try:
-                text = processor.apply_chat_template(
-                    messages,
-                    add_generation_prompt=True,
-                    tokenize=False
-                )
-
-                # Process with formatted text and images
-                inputs = processor(
-                    text=[text],
-                    images=[image],
-                    return_tensors="pt",
-                    padding=True
-                )
-            except (AttributeError, TypeError) as e:
-                # Fallback for processors without apply_chat_template
-                logger.warning(f"Processor doesn't support apply_chat_template ({e}), using direct processing")
-                inputs = processor(
-                    text=prompt,
-                    images=image,
-                    return_tensors="pt",
-                    padding=True
-                )
-
-            # Move inputs to device
-            inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v
-                     for k, v in inputs.items()}
-
-            # Generate response with client-specified parameters
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=max_completion_tokens,
-                    temperature=temperature,
-                    do_sample=temperature > 0.0,  # Only sample if temperature > 0
-                    num_beams=1  # Greedy decoding for deterministic output
-                )
-
-            # Decode response
-            response = processor.decode(outputs[0], skip_special_tokens=True)
-                
-        elif model_type == "auto":
-            # Try to use processor for vision + tokenizer for text
-            # This is model-specific and may need customization
-            try:
-                # Try processor with image
-                image_inputs = processor(image, return_tensors="pt")
-                text_inputs = tokenizer(full_prompt, return_tensors="pt")
-
-                # Combine inputs (model-specific)
-                inputs = {**image_inputs, **text_inputs}
-                inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v
-                         for k, v in inputs.items()}
-
-                with torch.no_grad():
-                    outputs = model.generate(
-                        **inputs,
-                        max_new_tokens=max_completion_tokens,
-                        temperature=temperature,
-                        do_sample=temperature > 0.0,
-                        num_beams=1
-                    )
-
-                response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-            except Exception as e:
-                raise RuntimeError(f"AutoModel processing failed: {e}")
-                
-        elif model_type == "causal":
-            # Text-only model - this won't work well with images
-            # But we'll try to process text only
-            logger.warning("CausalLM model - image input ignored")
-            inputs = tokenizer(full_prompt, return_tensors="pt")
-            inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
-
-            with torch.no_grad():
-                outputs = model.generate(
-                    **inputs,
-                    max_new_tokens=max_completion_tokens,
-                    temperature=temperature,
-                    do_sample=temperature > 0.0,
-                    num_beams=1
-                )
-
-            response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        else:
-            raise RuntimeError(f"Unknown model type: {model_type}")
-
-        # Log and validate the response
-        response = response.strip()
-        logger.info(f"Grounding model raw response: {response}")
-
-        # Validate that response contains at least 2 numbers (for coordinate pair)
-        numbers = re.findall(r'\d+', response)
-        if len(numbers) < 2:
-            logger.warning(f"Response validation: Expected at least 2 numbers for coordinates, found {len(numbers)}: {numbers}")
-        else:
-            logger.info(f"Response validation: Found {len(numbers)} numbers: {numbers[:2]} (using first 2 as coordinates)")
-
-        return response
-        
-    except Exception as e:
-        raise RuntimeError(f"Generation failed: {e}")
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
     return {
         "status": "healthy",
-        "model": MODEL_NAME,
-        "device": DEVICE,
-        "model_loaded": model is not None,
-        "model_type": model_type or "unknown"
+        "model": DEFAULT_MODEL,
+        "base_url": BASE_URL,
     }
 
 
-@app.post("/v1/chat/completions", response_model=ChatCompletionResponse)
+@app.post("/v1/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
-    """
-    OpenAI-compatible chat completions endpoint
-    Accepts image + text and returns coordinates
-
-    Note: Authorization header is ignored for local deployment.
-    For production, implement proper authentication middleware.
-    """
-    try:
-        # Extract text and image from messages
-        prompt, image = extract_text_and_image(request.messages)
-
-        if not prompt:
-            raise HTTPException(status_code=400, detail="No text prompt provided")
-
-        if image is None:
-            raise HTTPException(status_code=400, detail="No image provided")
-
-        # Generate coordinates with client-specified parameters
-        response_text = await generate_coordinates(
-            prompt,
-            image,
-            temperature=request.temperature,
-            max_completion_tokens=request.max_completion_tokens
-        )
-        
-        # Format response in OpenAI-compatible format
-        response = {
-            "id": f"chatcmpl-{int(time.time())}",
-            "object": "chat.completion",
-            "created": int(time.time()),
-            "model": request.model,
-            "choices": [
-                {
-                    "index": 0,
-                    "message": {
-                        "role": "assistant",
-                        "content": response_text
-                    },
-                    "finish_reason": "stop"
-                }
-            ],
-            "usage": {
-                "prompt_tokens": len(prompt.split()),
-                "completion_tokens": len(response_text.split()),
-                "total_tokens": len(prompt.split()) + len(response_text.split())
-            }
-        }
-        
-        return response
-
-    except ValueError as e:
-        logger.error(f"Validation error: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except RuntimeError as e:
-        logger.error(f"Runtime error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-    except Exception as e:
-        logger.exception(f"Unexpected error in chat_completions: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+    messages = prepare_messages(request.messages)
+    completion = await request_chat_completion(
+        messages=messages,
+        model=request.model,
+        temperature=request.temperature,
+        max_tokens=request.max_tokens or request.max_completion_tokens,
+    )
+    result = completion.model_dump() if hasattr(completion, "model_dump") else completion
+    if isinstance(result, dict):
+        result.setdefault("id", f"chatcmpl-{int(time.time())}")
+        result.setdefault("object", "chat.completion")
+        result.setdefault("created", int(time.time()))
+    return result
 
 
 @app.post("/grounding/generate")
-async def grounding_generate(
-    prompt: str,
-    image: str  # Base64 encoded image
-):
-    """
-    Simple grounding endpoint (alternative to OpenAI format)
-    """
-    try:
-        image_obj = decode_image_from_base64(image)
-        response_text = await generate_coordinates(prompt, image_obj)
-
-        # Extract coordinates from response
-        numbers = re.findall(r'\d+', response_text)
-        if len(numbers) >= 2:
-            coordinates = [int(numbers[0]), int(numbers[1])]
-        else:
-            coordinates = None
-        
-        return {
-            "response": response_text,
-            "coordinates": coordinates
+async def grounding_generate(prompt: str, image: str):
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": ensure_data_url(image)}},
+            ],
         }
-    except Exception as e:
-        logger.exception(f"Error in grounding_generate: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    ]
+    completion = await request_chat_completion(
+        messages=messages,
+        model=DEFAULT_MODEL,
+        temperature=0.0,
+        max_tokens=DEFAULT_MAX_TOKENS,
+    )
+    response_text = extract_response_text(completion)
+    numbers = re.findall(r"\d+", response_text)
+    coordinates = [int(numbers[0]), int(numbers[1])] if len(numbers) >= 2 else None
+    return {
+        "response": response_text,
+        "coordinates": coordinates,
+    }
 
 
 if __name__ == "__main__":
-    logger.info(f"Starting UI-TARS grounding model server on {HOST}:{PORT}")
-    logger.info(f"Model: {MODEL_NAME}")
-    logger.info(f"Device: {DEVICE}")
-    uvicorn.run(app, host=HOST, port=PORT)
+    import uvicorn
 
+    logger.info("Starting grounding proxy on %s", BASE_URL)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", "8080")))
