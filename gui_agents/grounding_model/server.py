@@ -256,19 +256,44 @@ async def generate_coordinates(
         raise ValueError("Image is required for grounding")
 
     try:
-        # Use prompt as-is (client formats it with necessary instructions)
-        # Swift client already includes "Output only the coordinate of one point in your response."
-        full_prompt = prompt
-        
         # Handle different model types
         if model_type == "vision2seq" or model_type == "blip":
             # Vision-language models with processor
-            inputs = processor(
-                text=full_prompt,
-                images=image,
-                return_tensors="pt",
-                padding=True
-            )
+            # Use chat template for proper multi-modal formatting (required for Qwen2.5-VL)
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image"},
+                        {"type": "text", "text": prompt}
+                    ]
+                }
+            ]
+
+            # Apply chat template to insert vision tokens properly
+            try:
+                text = processor.apply_chat_template(
+                    messages,
+                    add_generation_prompt=True,
+                    tokenize=False
+                )
+
+                # Process with formatted text and images
+                inputs = processor(
+                    text=[text],
+                    images=[image],
+                    return_tensors="pt",
+                    padding=True
+                )
+            except (AttributeError, TypeError) as e:
+                # Fallback for processors without apply_chat_template
+                logger.warning(f"Processor doesn't support apply_chat_template ({e}), using direct processing")
+                inputs = processor(
+                    text=prompt,
+                    images=image,
+                    return_tensors="pt",
+                    padding=True
+                )
 
             # Move inputs to device
             inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v
