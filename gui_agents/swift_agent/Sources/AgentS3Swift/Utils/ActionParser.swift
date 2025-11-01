@@ -94,65 +94,163 @@ class ActionParser {
         
         let functionName = String(functionCall[nameRange])
         let argsString = String(functionCall[argsRange])
-        let args = parseArguments(argsString)
-        
+        let (args, kwargs) = parseArguments(argsString)
+
         switch functionName {
         case "click":
-            guard args.count >= 1 else { return nil }
-            let description = parseStringLiteral(args[0])
-            let numClicks = args.count > 1 ? parseInteger(args[1]) ?? 1 : 1
-            let buttonType = args.count > 2 ? parseStringLiteral(args[2]) ?? "left" : "left"
-            let holdKeys = args.count > 3 ? parseStringArray(args[3]) ?? [] : []
+            // Support both positional and keyword arguments
+            let description: String
+            if let desc = kwargs["description"] {
+                description = parseStringLiteral(desc)
+            } else if args.count >= 1 {
+                description = parseStringLiteral(args[0])
+            } else {
+                return nil
+            }
+
+            let numClicks = kwargs["numClicks"].flatMap { parseInteger($0) }
+                ?? (args.count > 1 ? parseInteger(args[1]) : nil) ?? 1
+            let buttonType = kwargs["buttonType"].flatMap { parseStringLiteral($0) }
+                ?? (args.count > 2 ? parseStringLiteral(args[2]) : nil) ?? "left"
+            let holdKeys = kwargs["holdKeys"].flatMap { parseStringArray($0) }
+                ?? (args.count > 3 ? parseStringArray(args[3]) : nil) ?? []
             return .click(description: description, numClicks: numClicks, buttonType: buttonType, holdKeys: holdKeys)
-            
+
         case "type":
-            let description = args.count > 0 && args[0] != "None" ? parseStringLiteral(args[0]) : nil
-            let text = args.count > 1 ? parseStringLiteral(args[1]) ?? "" : ""
-            let overwrite = args.count > 2 ? parseBoolean(args[2]) ?? false : false
-            let enter = args.count > 3 ? parseBoolean(args[3]) ?? false : false
+            // Support both positional and keyword arguments
+            let description: String?
+            if let desc = kwargs["description"] {
+                description = desc != "None" ? parseStringLiteral(desc) : nil
+            } else if args.count > 0 && args[0] != "None" {
+                description = parseStringLiteral(args[0])
+            } else {
+                description = nil
+            }
+
+            let text = kwargs["text"].flatMap { parseStringLiteral($0) }
+                ?? (args.count > 1 ? parseStringLiteral(args[1]) : nil) ?? ""
+            let overwrite = kwargs["overwrite"].flatMap { parseBoolean($0) }
+                ?? (args.count > 2 ? parseBoolean(args[2]) : nil) ?? false
+            let enter = kwargs["enter"].flatMap { parseBoolean($0) }
+                ?? (args.count > 3 ? parseBoolean(args[3]) : nil) ?? false
             return .type(description: description, text: text, overwrite: overwrite, enter: enter)
             
         case "scroll":
-            guard args.count >= 2 else { return nil }
-            let description = parseStringLiteral(args[0])
-            let clicks = parseInteger(args[1]) ?? 0
-            let shift = args.count > 2 ? parseBoolean(args[2]) ?? false : false
+            let description: String
+            if let desc = kwargs["description"] {
+                description = parseStringLiteral(desc)
+            } else if args.count >= 1 {
+                description = parseStringLiteral(args[0])
+            } else {
+                return nil
+            }
+
+            let clicks: Int
+            if let c = kwargs["clicks"].flatMap({ parseInteger($0) }) {
+                clicks = c
+            } else if args.count >= 2, let c = parseInteger(args[1]) {
+                clicks = c
+            } else {
+                return nil
+            }
+
+            let shift = kwargs["shift"].flatMap { parseBoolean($0) }
+                ?? (args.count > 2 ? parseBoolean(args[2]) : nil) ?? false
             return .scroll(description: description, clicks: clicks, shift: shift)
-            
+
         case "drag_and_drop":
-            guard args.count >= 2 else { return nil }
-            let startDescription = parseStringLiteral(args[0])
-            let endDescription = parseStringLiteral(args[1])
-            let holdKeys = args.count > 2 ? parseStringArray(args[2]) ?? [] : []
+            let startDescription: String
+            let endDescription: String
+
+            if let start = kwargs["startDescription"] ?? kwargs["start_description"] {
+                startDescription = parseStringLiteral(start)
+            } else if args.count >= 1 {
+                startDescription = parseStringLiteral(args[0])
+            } else {
+                return nil
+            }
+
+            if let end = kwargs["endDescription"] ?? kwargs["end_description"] {
+                endDescription = parseStringLiteral(end)
+            } else if args.count >= 2 {
+                endDescription = parseStringLiteral(args[1])
+            } else {
+                return nil
+            }
+
+            let holdKeys = kwargs["holdKeys"].flatMap { parseStringArray($0) }
+                ?? (args.count > 2 ? parseStringArray(args[2]) : nil) ?? []
             return .dragAndDrop(startDescription: startDescription, endDescription: endDescription, holdKeys: holdKeys)
-            
+
         case "highlight_text_span":
-            guard args.count >= 2 else { return nil }
-            let startPhrase = parseStringLiteral(args[0])
-            let endPhrase = parseStringLiteral(args[1])
-            let button = args.count > 2 ? parseStringLiteral(args[2]) ?? "left" : "left"
+            let startPhrase: String
+            let endPhrase: String
+
+            if let start = kwargs["startPhrase"] ?? kwargs["start_phrase"] {
+                startPhrase = parseStringLiteral(start)
+            } else if args.count >= 1 {
+                startPhrase = parseStringLiteral(args[0])
+            } else {
+                return nil
+            }
+
+            if let end = kwargs["endPhrase"] ?? kwargs["end_phrase"] {
+                endPhrase = parseStringLiteral(end)
+            } else if args.count >= 2 {
+                endPhrase = parseStringLiteral(args[1])
+            } else {
+                return nil
+            }
+
+            let button = kwargs["button"].flatMap { parseStringLiteral($0) }
+                ?? (args.count > 2 ? parseStringLiteral(args[2]) : nil) ?? "left"
             return .highlightTextSpan(startPhrase: startPhrase, endPhrase: endPhrase, button: button)
-            
+
         case "hotkey":
-            print("DEBUG: Parsing hotkey action, args: \(args)")
-            guard args.count >= 1 else {
+            print("DEBUG: Parsing hotkey action, args: \(args), kwargs: \(kwargs)")
+            let keys: [String]
+            if let keysArg = kwargs["keys"] {
+                keys = parseStringArray(keysArg) ?? []
+                print("DEBUG: Parsed keys from kwargs: \(keys)")
+            } else if args.count >= 1 {
+                keys = parseStringArray(args[0]) ?? []
+                print("DEBUG: Parsed keys from positional: \(keys)")
+            } else {
                 print("DEBUG: No args for hotkey")
                 return nil
             }
-            print("DEBUG: First arg for hotkey: '\(args[0])'")
-            let keys = parseStringArray(args[0]) ?? []
-            print("DEBUG: Parsed keys: \(keys)")
             return .hotkey(keys: keys)
-            
+
         case "hold_and_press":
-            guard args.count >= 2 else { return nil }
-            let holdKeys = parseStringArray(args[0]) ?? []
-            let pressKeys = parseStringArray(args[1]) ?? []
+            let holdKeys: [String]
+            let pressKeys: [String]
+
+            if let hold = kwargs["holdKeys"] ?? kwargs["hold_keys"] {
+                holdKeys = parseStringArray(hold) ?? []
+            } else if args.count >= 1 {
+                holdKeys = parseStringArray(args[0]) ?? []
+            } else {
+                return nil
+            }
+
+            if let press = kwargs["pressKeys"] ?? kwargs["press_keys"] {
+                pressKeys = parseStringArray(press) ?? []
+            } else if args.count >= 2 {
+                pressKeys = parseStringArray(args[1]) ?? []
+            } else {
+                return nil
+            }
             return .holdAndPress(holdKeys: holdKeys, pressKeys: pressKeys)
-            
+
         case "wait":
-            guard args.count >= 1 else { return nil }
-            let time = parseDouble(args[0]) ?? 0.0
+            let time: Double
+            if let t = kwargs["time"].flatMap({ parseDouble($0) }) {
+                time = t
+            } else if args.count >= 1, let t = parseDouble(args[0]) {
+                time = t
+            } else {
+                return nil
+            }
             return .wait(time: time)
             
         case "done":
@@ -162,22 +260,47 @@ class ActionParser {
             return .fail
             
         case "call_code_agent":
-            let task = args.count > 0 && args[0] != "None" ? parseStringLiteral(args[0]) : nil
+            let task: String?
+            if let t = kwargs["task"] {
+                task = t != "None" ? parseStringLiteral(t) : nil
+            } else if args.count > 0 && args[0] != "None" {
+                task = parseStringLiteral(args[0])
+            } else {
+                task = nil
+            }
             return .callCodeAgent(task: task)
-            
+
         case "switch_applications":
-            guard args.count >= 1 else { return nil }
-            let appCode = parseStringLiteral(args[0])
+            let appCode: String
+            if let code = kwargs["appCode"] ?? kwargs["app_code"] {
+                appCode = parseStringLiteral(code)
+            } else if args.count >= 1 {
+                appCode = parseStringLiteral(args[0])
+            } else {
+                return nil
+            }
             return .switchApplications(appCode: appCode)
-            
+
         case "open":
-            guard args.count >= 1 else { return nil }
-            let appOrFilename = parseStringLiteral(args[0])
+            let appOrFilename: String
+            if let app = kwargs["appOrFilename"] ?? kwargs["app_or_filename"] {
+                appOrFilename = parseStringLiteral(app)
+            } else if args.count >= 1 {
+                appOrFilename = parseStringLiteral(args[0])
+            } else {
+                return nil
+            }
             return .open(appOrFilename: appOrFilename)
-            
+
         case "save_to_knowledge":
-            guard args.count >= 1 else { return nil }
-            let text = parseStringArray(args[0]) ?? []
+            let text: [String]
+            if let t = kwargs["text"] {
+                text = parseStringArray(t) ?? []
+            } else if args.count >= 1 {
+                text = parseStringArray(args[0]) ?? []
+            } else {
+                return nil
+            }
             return .saveToKnowledge(text: text)
             
         case "set_cell_values":
@@ -192,9 +315,10 @@ class ActionParser {
     }
     
     // MARK: - Argument Parsing Helpers
-    
-    private static func parseArguments(_ argsString: String) -> [String] {
-        var args: [String] = []
+
+    private static func parseArguments(_ argsString: String) -> (positional: [String], kwargs: [String: String]) {
+        var positionalArgs: [String] = []
+        var kwargs: [String: String] = [:]
         var current = ""
         var parenDepth = 0
         var bracketDepth = 0
@@ -223,7 +347,10 @@ class ActionParser {
                 bracketDepth -= 1
                 current.append(char)
             } else if !inString && parenDepth == 0 && bracketDepth == 0 && char == "," {
-                args.append(current.trimmingCharacters(in: .whitespaces))
+                let arg = current.trimmingCharacters(in: .whitespaces)
+                if !arg.isEmpty {
+                    parseArgument(arg, positional: &positionalArgs, kwargs: &kwargs)
+                }
                 current = ""
             } else {
                 current.append(char)
@@ -231,10 +358,43 @@ class ActionParser {
         }
 
         if !current.isEmpty {
-            args.append(current.trimmingCharacters(in: .whitespaces))
+            let arg = current.trimmingCharacters(in: .whitespaces)
+            parseArgument(arg, positional: &positionalArgs, kwargs: &kwargs)
         }
 
-        return args
+        return (positional: positionalArgs, kwargs: kwargs)
+    }
+
+    private static func parseArgument(_ arg: String, positional: inout [String], kwargs: inout [String: String]) {
+        // Check if this is a keyword argument (key=value)
+        // Need to find first '=' that's not inside quotes
+        var inString = false
+        var stringChar: Character?
+        var equalsIndex: String.Index?
+
+        for (index, char) in zip(arg.indices, arg) {
+            if !inString && (char == "'" || char == "\"") {
+                inString = true
+                stringChar = char
+            } else if inString && char == stringChar {
+                inString = false
+                stringChar = nil
+            } else if !inString && char == "=" && equalsIndex == nil {
+                equalsIndex = index
+                break
+            }
+        }
+
+        if let eqIndex = equalsIndex {
+            // Keyword argument
+            let key = String(arg[..<eqIndex]).trimmingCharacters(in: .whitespaces)
+            let valueStart = arg.index(after: eqIndex)
+            let value = String(arg[valueStart...]).trimmingCharacters(in: .whitespaces)
+            kwargs[key] = value
+        } else {
+            // Positional argument
+            positional.append(arg)
+        }
     }
     
     private static func parseStringLiteral(_ arg: String) -> String {
@@ -260,10 +420,11 @@ class ActionParser {
     }
     
     private static func parseBoolean(_ arg: String) -> Bool? {
-        let trimmed = arg.trimmingCharacters(in: .whitespaces).lowercased()
-        if trimmed == "true" || trimmed == "True" {
+        let trimmed = arg.trimmingCharacters(in: .whitespaces)
+        // Handle Python-style True/False (capital T/F) and lowercase variants
+        if trimmed == "True" || trimmed == "true" {
             return true
-        } else if trimmed == "false" || trimmed == "False" {
+        } else if trimmed == "False" || trimmed == "false" {
             return false
         }
         return nil
@@ -271,14 +432,14 @@ class ActionParser {
     
     private static func parseStringArray(_ arg: String) -> [String]? {
         let trimmed = arg.trimmingCharacters(in: .whitespaces)
-        
+
         // Handle list format: ['key1', 'key2'] or ["key1", "key2"]
         if trimmed.hasPrefix("[") && trimmed.hasSuffix("]") {
             let content = String(trimmed.dropFirst().dropLast())
-            let items = parseArguments(content)
+            let (items, _) = parseArguments(content)
             return items.map { parseStringLiteral($0) }
         }
-        
+
         return nil
     }
 }
